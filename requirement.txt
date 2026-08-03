@@ -1,0 +1,11 @@
+numpy
+pandas
+matplotlib
+scikit-learn
+torch
+gymnasium
+stable-baselines3
+yfinance
+jupyter
+pyyaml
+tqdm
