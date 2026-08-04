@@ -1,12 +1,32 @@
-__pycache__/
-*.pyc
+# Virtual environment
+.venv/
 
+# Python
+__pycache__/
+*.py[cod]
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Data
 data/raw/*
 data/processed/*
 
-results/models/*
-results/figures/*
+# Keep empty directories
+!data/raw/.gitkeep
+!data/processed/.gitkeep
 
-.ipynb_checkpoints/
+# Models and experiment outputs
+models/
+checkpoints/
+results/
 
-.env
+# Editors and operating systems
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
