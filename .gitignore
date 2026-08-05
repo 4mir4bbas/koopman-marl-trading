@@ -40,3 +40,5 @@ results/**/*.npz
 results/**/*.pt
 results/**/*.pth
 results/**/*.zip
+results/**/events.out.tfevents.*
+results/**/evaluations.npz

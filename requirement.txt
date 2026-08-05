@@ -8,3 +8,7 @@ gymnasium>=1.0
 stable-baselines3>=2.4
 
 yfinance>=0.2
+
+tensorboard>=2.16
+tqdm>=4.66
+rich>=13.7

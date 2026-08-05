@@ -1,0 +1,23 @@
+{
+    "seed": 42,
+    "total_timesteps": 100000,
+    "learning_rate": 0.0003,
+    "n_steps": 1024,
+    "batch_size": 64,
+    "n_epochs": 10,
+    "gamma": 0.99,
+    "gae_lambda": 0.95,
+    "clip_range": 0.2,
+    "ent_coef": 0.0,
+    "vf_coef": 0.5,
+    "max_grad_norm": 0.5,
+    "hidden_size": 128,
+    "window_size": 30,
+    "initial_balance": 10000.0,
+    "transaction_cost": 0.001,
+    "eval_frequency": 10000,
+    "verbose": 1,
+    "model_directory": "models\\ppo",
+    "log_directory": "results\\ppo\\logs",
+    "evaluation_directory": "results\\ppo\\evaluation"
+}
