@@ -13,8 +13,9 @@ from stable_baselines3.common.callbacks import (
 )
 
 from src.agents.ppo.factory import (
-    create_monitored_environment,
+    create_evaluation_environment,
     create_ppo_model,
+    create_training_environment,
 )
 from src.config.ppo_config import PPOConfig
 from src.data.loader import load_ohlcv
@@ -95,13 +96,25 @@ def main() -> None:
         f"Total timesteps: "
         f"{config.total_timesteps:,}"
     )
+    print(
+        "Training episode length: "
+        f"{config.train_episode_length}"
+    )
 
-    training_env = create_monitored_environment(
+    print(
+        "Training start mode: random"
+    )
+
+    print(
+        "Validation start mode: fixed"
+    )
+
+    training_env = create_training_environment(
         data=splits.train,
         config=config,
     )
 
-    validation_env = create_monitored_environment(
+    validation_env = create_evaluation_environment(
         data=splits.validation,
         config=config,
     )

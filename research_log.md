@@ -100,3 +100,88 @@ Research note:
 The current work establishes evaluation infrastructure and does not
 constitute a scientific contribution. PPO must outperform simple
 financial baselines out of sample and after transaction costs.
+
+
+# Date: 2026-08-05
+
+Milestone: First reproducible PPO baseline
+
+Training protocol:
+- PPO is trained exclusively on the chronological training split.
+- Periodic evaluation is performed on the validation split.
+- The test split remains untouched.
+- The best model is selected using validation episode reward.
+- Deterministic evaluation is used.
+- CPU execution is explicitly configured.
+- Global random seed is set to 42.
+
+Initial PPO configuration:
+- Total timesteps: 100,000
+- Learning rate: 0.0003
+- Rollout length: 1,024
+- Batch size: 64
+- Epochs per update: 10
+- Gamma: 0.99
+- GAE lambda: 0.95
+- Clip range: 0.20
+- Policy network: [128, 128]
+- Value network: [128, 128]
+
+Reproducibility:
+- Experiment settings are stored as JSON.
+- TensorBoard training logs are generated.
+- Periodic checkpoints are generated locally.
+- Large model artifacts are excluded from Git.
+- Validation metrics and equity curves are retained.
+
+Known limitations:
+- Training repeatedly uses one deterministic historical trajectory.
+- Validation contains one deterministic episode.
+- Best-model selection is based on total validation reward rather
+  than a risk-adjusted financial metric.
+- Results from one random seed are not statistically meaningful.
+- Execution still occurs at the current candle close.
+
+Next methodological step:
+Introduce random-start fixed-length episodes before extensive PPO
+tuning or comparison.
+
+
+# Date: 2026-08-05
+
+Milestone: Random-start fixed-length training episodes
+
+Environment changes:
+- Training episodes use random historical starting indices.
+- Training episode length is fixed at 365 transitions.
+- Validation uses a deterministic fixed start.
+- Validation covers the complete validation split.
+- Episodes cannot cross the boundary of their assigned data split.
+- Dataset or episode exhaustion is reported as truncation.
+- Portfolio depletion is treated as natural termination.
+- Reset options can override the episode starting index.
+
+Reproducibility:
+- Random starts use Gymnasium's internally seeded NumPy generator.
+- Identical reset seeds produce identical episode starts.
+- Different seeds can produce different historical samples.
+- Validation start is independent of the random seed.
+
+Methodological motivation:
+The previous implementation repeatedly exposed PPO to one complete
+historical trajectory. Random fixed-length training episodes reduce
+memorization of a single time path and expose the policy to multiple
+historical subperiods.
+
+Known limitations:
+- Historical subperiods are sampled uniformly by start index.
+- Market regimes are not explicitly detected or balanced.
+- Highly persistent regimes may dominate the episode distribution.
+- Validation still consists of one deterministic historical path.
+- Current-close execution bias remains unresolved.
+
+Research direction:
+A future regime-aware episode sampler could balance or deliberately
+stress the policy across trend, volatility, liquidity, and structural
+break regimes. This should first be developed as an evaluation and
+sampling mechanism before being claimed as an algorithmic contribution.

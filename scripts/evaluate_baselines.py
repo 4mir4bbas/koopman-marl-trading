@@ -136,12 +136,16 @@ def run_episode(
     )
 
 
+
 def create_environment(
     data: pd.DataFrame,
 ) -> TradingEnv:
     return TradingEnv(
         data=data,
         window_size=30,
+        episode_length=None,
+        random_start=False,
+        fixed_start_index=30,
         initial_balance=10_000.0,
         transaction_cost=0.001,
     )

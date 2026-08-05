@@ -8,7 +8,7 @@ import pandas as pd
 from stable_baselines3 import PPO
 
 from src.agents.ppo.factory import (
-    create_monitored_environment,
+    create_evaluation_environment,
 )
 from src.config.ppo_config import PPOConfig
 from src.data.loader import load_ohlcv
@@ -24,7 +24,7 @@ def run_model_episode(
     data: pd.DataFrame,
     config: PPOConfig,
 ) -> tuple[pd.Series, PerformanceMetrics]:
-    env = create_monitored_environment(
+    env = create_evaluation_environment(
         data=data,
         config=config,
     )
@@ -189,10 +189,10 @@ def main() -> None:
     # Test remains untouched.
     evaluation_data = splits.validation
 
-    evaluation_env = create_monitored_environment(
-        data=evaluation_data,
-        config=config,
-    )
+    evaluation_env = create_evaluation_environment(
+    data=evaluation_data,
+    config=config,
+)
 
     try:
         model = PPO.load(

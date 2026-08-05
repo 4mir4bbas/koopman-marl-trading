@@ -13,6 +13,8 @@
     "max_grad_norm": 0.5,
     "hidden_size": 128,
     "window_size": 30,
+    "train_episode_length": 365,
+    "validation_episode_length": null,
     "initial_balance": 10000.0,
     "transaction_cost": 0.001,
     "eval_frequency": 10000,

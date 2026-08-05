@@ -8,13 +8,35 @@ from src.config.ppo_config import PPOConfig
 from src.environments.trading_env import TradingEnv
 
 
-def create_monitored_environment(
+def create_training_environment(
     data: pd.DataFrame,
     config: PPOConfig,
 ) -> Monitor:
     env = TradingEnv(
         data=data,
         window_size=config.window_size,
+        episode_length=config.train_episode_length,
+        random_start=True,
+        fixed_start_index=None,
+        initial_balance=config.initial_balance,
+        transaction_cost=config.transaction_cost,
+    )
+
+    return Monitor(env)
+
+
+def create_evaluation_environment(
+    data: pd.DataFrame,
+    config: PPOConfig,
+) -> Monitor:
+    env = TradingEnv(
+        data=data,
+        window_size=config.window_size,
+        episode_length=(
+            config.validation_episode_length
+        ),
+        random_start=False,
+        fixed_start_index=config.window_size,
         initial_balance=config.initial_balance,
         transaction_cost=config.transaction_cost,
     )
@@ -44,7 +66,9 @@ def create_ppo_model(
         policy_kwargs=config.policy_kwargs(),
         seed=config.seed,
         verbose=config.verbose,
-        tensorboard_log=str(config.log_directory),
+        tensorboard_log=str(
+            config.log_directory
+        ),
         device="cpu",
     )
 

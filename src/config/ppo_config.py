@@ -27,6 +27,9 @@ class PPOConfig:
     hidden_size: int = 128
 
     window_size: int = 30
+    train_episode_length: int = 365
+    validation_episode_length: int | None = None
+
     initial_balance: float = 10_000.0
     transaction_cost: float = 0.001
 
@@ -77,6 +80,20 @@ class PPOConfig:
         if self.eval_frequency <= 0:
             raise ValueError(
                 "eval_frequency must be positive."
+            )
+
+        if self.train_episode_length < 1:
+            raise ValueError(
+                "train_episode_length must be positive."
+            )
+
+        if (
+            self.validation_episode_length is not None
+            and self.validation_episode_length < 1
+        ):
+            raise ValueError(
+                "validation_episode_length must be "
+                "positive or None."
             )
 
     def policy_kwargs(self) -> dict[str, Any]:
