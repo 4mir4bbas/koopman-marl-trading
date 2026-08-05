@@ -212,8 +212,8 @@ class TradingEnv(gym.Env[np.ndarray, int]):
 
         reward = self._calculate_reward()
 
-        terminated = self.current_step >= len(self.data) - 1
-        truncated = False
+        terminated = self.portfolio_value <= 1e-8
+        truncated = self.current_step >= len(self.data) - 1
 
         observation = self._get_observation()
         info = self._get_info()

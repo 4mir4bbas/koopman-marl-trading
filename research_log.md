@@ -56,3 +56,47 @@ Known limitations:
 - Episodes currently cover the complete dataset.
 - The environment is intended as infrastructure, not a scientific
   contribution.
+
+
+# Date: 2026-08-05
+
+Milestone: Chronological data split and non-RL baselines
+
+Data split:
+- Training: 70%
+- Validation: 15%
+- Test: 15%
+- Splits are chronological and never shuffled.
+- Test data is reserved for final model evaluation.
+- Initial baseline comparisons use validation data.
+
+Implemented baselines:
+- Cash-only policy
+- Buy-and-hold policy
+- Random policy over 30 independent seeds
+
+Performance metrics:
+- Total return
+- Annualized return
+- Annualized volatility
+- Sharpe ratio
+- Sortino ratio
+- Maximum drawdown
+- Calmar ratio
+- Trade count
+- Transaction costs
+
+Methodological decisions:
+- Crypto returns are annualized using 365 periods per year.
+- The initial risk-free rate is assumed to be zero.
+- Random-policy performance is reported as a distribution rather
+  than a single run.
+- Dataset exhaustion is modeled as truncation rather than natural
+  termination.
+- Small tabular experiment outputs are version controlled.
+- Large checkpoints and binary artifacts remain excluded from Git.
+
+Research note:
+The current work establishes evaluation infrastructure and does not
+constitute a scientific contribution. PPO must outperform simple
+financial baselines out of sample and after transaction costs.

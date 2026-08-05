@@ -23,10 +23,20 @@ data/processed/*
 # Models and experiment outputs
 models/
 checkpoints/
-results/
+
 
 # Editors and operating systems
 .vscode/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Large experiment artifacts
+models/
+checkpoints/
+results/**/*.png
+results/**/*.npy
+results/**/*.npz
+results/**/*.pt
+results/**/*.pth
+results/**/*.zip
