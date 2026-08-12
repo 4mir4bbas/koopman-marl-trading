@@ -146,7 +146,7 @@ class TradingEnv(gym.Env[np.ndarray, int]):
             )
 
         maximum_episode_length = (
-            len(data) - window_size - 1
+            len(data) - window_size
         )
 
         if episode_length is not None:
@@ -176,10 +176,12 @@ class TradingEnv(gym.Env[np.ndarray, int]):
             )
 
         if fixed_start_index is not None:
-            if fixed_start_index < window_size:
+            minimum_start_index = window_size - 1
+
+            if fixed_start_index < minimum_start_index:
                 raise ValueError(
                     "fixed_start_index must be at least "
-                    "window_size."
+                    f"{minimum_start_index}."
                 )
 
             if fixed_start_index >= len(data) - 1:
@@ -330,7 +332,7 @@ class TradingEnv(gym.Env[np.ndarray, int]):
 
             return int(
                 self.np_random.integers(
-                    low=self.window_size,
+                    low=self.window_size - 1,
                     high=maximum_start + 1,
                 )
             )
@@ -338,7 +340,7 @@ class TradingEnv(gym.Env[np.ndarray, int]):
         if self.fixed_start_index is not None:
             return self.fixed_start_index
 
-        return self.window_size
+        return self.window_size - 1
 
     def _maximum_start_index(self) -> int:
         if self.episode_length is None:
@@ -354,10 +356,12 @@ class TradingEnv(gym.Env[np.ndarray, int]):
         self,
         start_index: int,
     ) -> None:
-        if start_index < self.window_size:
+
+        minimum_start_index = self.window_size - 1
+        if start_index < minimum_start_index:
             raise ValueError(
                 "start_index must be at least "
-                f"{self.window_size}."
+                f"{minimum_start_index}."
             )
 
         if start_index > self._maximum_start_index():
@@ -392,41 +396,85 @@ class TradingEnv(gym.Env[np.ndarray, int]):
                 f"Invalid action: {action}"
             )
 
-        execution_price = self._get_current_price()
+        decision_step = self.current_step
 
+        decision_close = float(
+            self.data.iloc[decision_step]["close"]
+        )
+
+        next_step = decision_step + 1
+
+        if next_step >= len(self.data):
+            raise RuntimeError(
+                "Cannot execute another step beyond "
+                "the available market data."
+            )
+
+        next_open = float(
+            self.data.iloc[next_step]["open"]
+        )
+
+        next_close = float(
+            self.data.iloc[next_step]["close"]
+        )
+
+        # Portfolio value at the moment the agent makes
+        # its decision, using Close(t).
         self.previous_portfolio_value = (
             self._calculate_portfolio_value(
-                execution_price
+                decision_close
             )
         )
 
+        # The action selected using information available
+        # through Close(t) is executed at Open(t+1).
         self._execute_action(
             action=action,
-            execution_price=execution_price,
+            execution_price=next_open,
         )
 
-        self.current_step += 1
+        # Advance the environment to candle t+1.
+        self.current_step = next_step
         self.episode_step_count += 1
 
-        valuation_price = self._get_current_price()
-
+        # Mark the portfolio using Close(t+1).
         self.portfolio_value = (
             self._calculate_portfolio_value(
-                valuation_price
+                next_close
             )
         )
 
         reward = self._calculate_reward()
 
-        terminated = self.portfolio_value <= 1e-8
+        terminated = (
+            self.portfolio_value <= 1e-8
+        )
 
         truncated = (
-            self.current_step >= self.episode_end_step
-            or self.current_step >= len(self.data) - 1
+            self.current_step
+            >= self.episode_end_step
         )
 
         observation = self._get_observation()
+
         info = self._get_info()
+
+        info.update(
+            {
+                "action": action,
+                "decision_step": decision_step,
+                "decision_timestamp": (
+                    self.data.index[decision_step]
+                ),
+                "decision_close": decision_close,
+                "execution_step": next_step,
+                "execution_timestamp": (
+                    self.data.index[next_step]
+                ),
+                "execution_price": next_open,
+                "valuation_price": next_close,
+            }
+        )
 
         if self.render_mode == "human":
             self.render()
@@ -512,9 +560,9 @@ class TradingEnv(gym.Env[np.ndarray, int]):
     def _get_observation(self) -> np.ndarray:
         start = (
             self.current_step
-            - self.window_size
+            - self.window_size + 1
         )
-        end = self.current_step
+        end = self.current_step + 1
 
         window = self.data.iloc[start:end]
 

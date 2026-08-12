@@ -88,7 +88,7 @@ def main() -> None:
     assert repeated_run[2] == episode_length
     assert different_seed_run[2] == episode_length
 
-    assert first_run[0] >= 30
+    assert first_run[0] >= 29
 
     assert first_run[1] < len(
         splits.train
@@ -120,7 +120,7 @@ def main() -> None:
         window_size=30,
         episode_length=None,
         random_start=False,
-        fixed_start_index=30,
+        fixed_start_index=29,
         initial_balance=10_000.0,
         transaction_cost=0.001,
     )
@@ -141,7 +141,9 @@ def main() -> None:
     )
 
     expected_validation_steps = (
-        len(splits.validation) - 1 - 30
+        len(splits.validation)
+        - 1
+        - 29
     )
 
     assert (

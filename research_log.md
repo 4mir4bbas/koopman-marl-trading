@@ -185,3 +185,40 @@ A future regime-aware episode sampler could balance or deliberately
 stress the policy across trend, volatility, liquidity, and structural
 break regimes. This should first be developed as an evaluation and
 sampling mechanism before being claimed as an algorithmic contribution.
+
+# Date: 2026-08-12
+
+Milestone: Causal next-open execution model
+
+Execution protocol:
+- The observation includes OHLCV information through candle t.
+- The agent makes its decision after candle t is fully observed.
+- The selected action is executed at Open(t+1).
+- Portfolio valuation after execution uses Close(t+1).
+- Reward measures the log portfolio return from Close(t) to
+  Close(t+1).
+
+Observation changes:
+- The rolling observation window now includes the current candle.
+- For a window size of 30, the first valid decision index is 29.
+- No future market information is included in an observation.
+
+Bias prevention:
+- The agent cannot capture an overnight price gap that occurs before
+  its order is executed.
+- A dedicated synthetic gap test verifies causal execution timing.
+- Previous PPO models trained under same-close execution are treated
+  as methodologically obsolete.
+
+Current execution assumptions:
+- Trades execute exactly at the next candle open.
+- Transaction costs are modeled.
+- Slippage is not yet modeled.
+- Bid-ask spread is not yet modeled.
+- Market impact and liquidity constraints are not yet modeled.
+
+Research significance:
+This change does not constitute an algorithmic contribution. It
+strengthens the validity of the experimental framework by removing
+same-candle execution bias and establishing a causal relationship
+between observations, actions, executions, and rewards.

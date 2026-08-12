@@ -36,7 +36,7 @@ def create_evaluation_environment(
             config.validation_episode_length
         ),
         random_start=False,
-        fixed_start_index=config.window_size,
+        fixed_start_index=config.window_size - 1,
         initial_balance=config.initial_balance,
         transaction_cost=config.transaction_cost,
     )
