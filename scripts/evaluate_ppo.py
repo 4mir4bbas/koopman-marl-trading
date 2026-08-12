@@ -17,6 +17,8 @@ from src.evaluation.metrics import (
     PerformanceMetrics,
     calculate_performance_metrics,
 )
+from src.experiments.paths import get_experiment_paths
+import argparse
 
 
 def run_model_episode(
@@ -161,17 +163,44 @@ def print_metrics(
     )
 
 
-def main() -> None:
-    config = PPOConfig()
 
-    best_model_path = Path(
-        "models/ppo/best/best_model.zip"
+def parse_arguments() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Evaluate a trained PPO model."
+    )
+
+    parser.add_argument(
+        "--seed",
+        type=int,
+        required=True,
+        help="Random seed of the trained PPO model.",
+    )
+
+    return parser.parse_args()
+
+
+def main() -> None:
+    args = parse_arguments()
+
+    config = PPOConfig(
+        seed=args.seed,
+    )
+
+    paths = get_experiment_paths(
+        experiment_name=config.experiment_name,
+        seed=config.seed,
+    )
+
+    best_model_path = (
+        paths.model_dir
+        / "best"
+        / "best_model.zip"
     )
 
     if not best_model_path.exists():
         raise FileNotFoundError(
-            "Best PPO model was not found. "
-            "Run scripts.train_ppo first."
+            "Best PPO model was not found: "
+            f"{best_model_path}"
         )
 
     data = load_ohlcv(
@@ -211,8 +240,8 @@ def main() -> None:
 
     print_metrics(metrics)
 
-    output_directory = Path(
-        "results/ppo/validation"
+    output_directory = (
+        paths.validation_dir
     )
     output_directory.mkdir(
         parents=True,
@@ -226,7 +255,7 @@ def main() -> None:
     )
 
     with (
-        output_directory / "ppo_metrics.json"
+        output_directory / "metrics.json"
     ).open(
         "w",
         encoding="utf-8",

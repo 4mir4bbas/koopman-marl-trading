@@ -47,6 +47,7 @@ def create_evaluation_environment(
 def create_ppo_model(
     environment: Monitor,
     config: PPOConfig,
+    tensorboard_log: str,
 ) -> PPO:
     config.validate()
 
@@ -66,9 +67,7 @@ def create_ppo_model(
         policy_kwargs=config.policy_kwargs(),
         seed=config.seed,
         verbose=config.verbose,
-        tensorboard_log=str(
-            config.log_directory
-        ),
+        tensorboard_log=tensorboard_log,
         device="cpu",
     )
 

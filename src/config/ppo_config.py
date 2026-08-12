@@ -8,7 +8,7 @@ from typing import Any
 @dataclass(frozen=True)
 class PPOConfig:
     seed: int = 42
-
+    experiment_name : str = "ppo_baseline_v1"
     total_timesteps: int = 100_000
     learning_rate: float = 3e-4
 
