@@ -123,15 +123,16 @@ def calculate_performance_metrics(
     else:
         sharpe_ratio = np.nan
 
-    downside_returns = excess_returns[
-        excess_returns < 0.0
-    ]
-    downside_deviation = downside_returns.std(ddof=1)
+    downside_returns = np.minimum(
+        excess_returns.to_numpy(),
+        0.0,
+    )
 
-    if (
-        len(downside_returns) >= 2
-        and downside_deviation > 1e-12
-    ):
+    downside_deviation = float(
+        np.sqrt(np.mean(np.square(downside_returns)))
+    )
+
+    if downside_deviation > 1e-12:
         sortino_ratio = float(
             excess_returns.mean()
             / downside_deviation

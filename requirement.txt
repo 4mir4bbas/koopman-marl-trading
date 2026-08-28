@@ -12,3 +12,4 @@ yfinance>=0.2
 tensorboard>=2.16
 tqdm>=4.66
 rich>=13.7
+pytest>=8.0

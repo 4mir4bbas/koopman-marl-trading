@@ -1,3 +1,4 @@
+
 from __future__ import annotations
 
 import numpy as np
@@ -32,7 +33,7 @@ def create_increasing_market() -> pd.DataFrame:
     )
 
 
-def main() -> None:
+def test_buy_hold_sell_accounting():
     data = create_increasing_market()
 
     env = TradingEnv(
@@ -42,9 +43,7 @@ def main() -> None:
         transaction_cost=0.0,
     )
 
-    _, initial_info = env.reset(
-        seed=42
-    )
+    _, initial_info = env.reset(seed=42)
 
     initial_step = int(
         initial_info["current_step"]
@@ -64,9 +63,7 @@ def main() -> None:
     )
 
     expected_execution_price = float(
-        data.iloc[
-            initial_step + 1
-        ]["open"]
+        data.iloc[initial_step + 1]["open"]
     )
 
     assert np.isclose(
@@ -77,10 +74,6 @@ def main() -> None:
     assert buy_info["position"] == 1
     assert buy_info["btc_holdings"] > 0.0
 
-    # Open and Close of the execution candle are equal
-    # in this synthetic market, so the first buy step
-    # produces no market return when transaction costs
-    # are zero.
     assert np.isclose(
         buy_reward,
         0.0,
@@ -128,42 +121,94 @@ def main() -> None:
         > 10_000.0
     )
 
-    # The position is still held overnight before the sell
-    # executes at the next open. Because the synthetic market
-    # rises from the previous close to the next open, the agent
-    # correctly earns that overnight return before exiting.
     assert sell_reward > 0.0
 
-    print(
-        "Causal execution accounting "
-        "test passed."
+
+def test_action_executes_at_next_open():
+    data = pd.DataFrame(
+        {
+            "open": [
+                100.0,
+                100.0,
+                100.0,
+                100.0,
+                200.0,
+                200.0,
+                200.0,
+            ],
+            "high": [
+                101.0,
+                101.0,
+                101.0,
+                101.0,
+                201.0,
+                201.0,
+                201.0,
+            ],
+            "low": [
+                99.0,
+                99.0,
+                99.0,
+                99.0,
+                199.0,
+                199.0,
+                199.0,
+            ],
+            "close": [
+                100.0,
+                100.0,
+                100.0,
+                100.0,
+                200.0,
+                200.0,
+                200.0,
+            ],
+            "volume": [1_000.0] * 7,
+        },
+        index=pd.date_range(
+            "2025-01-01",
+            periods=7,
+            freq="D",
+            tz="UTC",
+        ),
     )
 
-    print(
-        f"Buy executed at: "
-        f"{buy_info['execution_price']:.2f}"
+    env = TradingEnv(
+        data=data,
+        window_size=3,
+        fixed_start_index=3,
+        initial_balance=10_000.0,
+        transaction_cost=0.0,
     )
 
-    print(
-        f"Buy reward:  "
-        f"{buy_reward:.8f}"
+    _, info = env.reset()
+
+    assert info["current_step"] == 3
+    assert info["current_price"] == 100.0
+
+    (
+        _,
+        reward,
+        _,
+        _,
+        info,
+    ) = env.step(TradingEnv.BUY)
+
+    # Decision occurs after Close(t)=100,
+    # so the agent must buy at Open(t+1)=200.
+    assert np.isclose(
+        info["execution_price"],
+        200.0,
     )
 
-    print(
-        f"Hold reward: "
-        f"{hold_reward:.8f}"
+    # The agent must not capture the overnight
+    # jump from 100 to 200.
+    assert np.isclose(
+        info["portfolio_value"],
+        10_000.0,
     )
 
-    print(
-        f"Sell reward: "
-        f"{sell_reward:.8f}"
+    assert np.isclose(
+        reward,
+        0.0,
     )
-
-    print(
-        "Final portfolio value: "
-        f"{sell_info['portfolio_value']:.2f}"
-    )
-
-
-if __name__ == "__main__":
-    main()

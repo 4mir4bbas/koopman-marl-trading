@@ -1,8 +1,38 @@
 from __future__ import annotations
 
-from src.data.loader import load_ohlcv
-from src.data.split import chronological_split
+import numpy as np
+import pandas as pd
+
 from src.environments.trading_env import TradingEnv
+
+
+def create_market(
+    length: int = 900,
+) -> pd.DataFrame:
+    close = np.linspace(
+        100.0,
+        200.0,
+        length,
+    )
+
+    return pd.DataFrame(
+        {
+            "open": close,
+            "high": close + 1.0,
+            "low": close - 1.0,
+            "close": close,
+            "volume": np.full(
+                length,
+                1_000.0,
+            ),
+        },
+        index=pd.date_range(
+            start="2020-01-01",
+            periods=length,
+            freq="D",
+            tz="UTC",
+        ),
+    )
 
 
 def run_to_end(
@@ -14,6 +44,7 @@ def run_to_end(
     start_step = int(
         initial_info["episode_start_step"]
     )
+
     expected_end_step = int(
         initial_info["episode_end_step"]
     )
@@ -49,17 +80,13 @@ def run_to_end(
     )
 
 
-def main() -> None:
-    data = load_ohlcv(
-        "data/raw/btc_usd_1d.csv"
-    )
-
-    splits = chronological_split(data)
+def test_random_episode_sampling_is_reproducible():
+    data = create_market()
 
     episode_length = 365
 
-    training_env = TradingEnv(
-        data=splits.train,
+    env = TradingEnv(
+        data=data,
         window_size=30,
         episode_length=episode_length,
         random_start=True,
@@ -68,17 +95,17 @@ def main() -> None:
     )
 
     first_run = run_to_end(
-        training_env,
+        env,
         seed=42,
     )
 
     repeated_run = run_to_end(
-        training_env,
+        env,
         seed=42,
     )
 
     different_seed_run = run_to_end(
-        training_env,
+        env,
         seed=43,
     )
 
@@ -89,34 +116,14 @@ def main() -> None:
     assert different_seed_run[2] == episode_length
 
     assert first_run[0] >= 29
+    assert first_run[1] < len(data)
 
-    assert first_run[1] < len(
-        splits.train
-    )
 
-    print(
-        "Random episode sampling test passed."
-    )
+def test_full_split_episode_is_deterministic():
+    data = create_market()
 
-    print(
-        "Seed 42 start/end: "
-        f"{first_run[0]} -> {first_run[1]}"
-    )
-
-    print(
-        "Repeated seed 42 start/end: "
-        f"{repeated_run[0]} -> "
-        f"{repeated_run[1]}"
-    )
-
-    print(
-        "Seed 43 start/end: "
-        f"{different_seed_run[0]} -> "
-        f"{different_seed_run[1]}"
-    )
-
-    validation_env = TradingEnv(
-        data=splits.validation,
+    env = TradingEnv(
+        data=data,
         window_size=30,
         episode_length=None,
         random_start=False,
@@ -125,69 +132,50 @@ def main() -> None:
         transaction_cost=0.001,
     )
 
-    first_validation = run_to_end(
-        validation_env,
+    first_run = run_to_end(
+        env,
         seed=42,
     )
 
-    second_validation = run_to_end(
-        validation_env,
+    second_run = run_to_end(
+        env,
         seed=999,
     )
 
-    assert (
-        first_validation
-        == second_validation
-    )
+    assert first_run == second_run
 
-    expected_validation_steps = (
-        len(splits.validation)
+    expected_steps = (
+        len(data)
         - 1
         - 29
     )
 
-    assert (
-        first_validation[2]
-        == expected_validation_steps
-    )
+    assert first_run[2] == expected_steps
 
-    print(
-        "Deterministic validation episode "
-        "test passed."
-    )
 
-    print(
-        "Validation start/end: "
-        f"{first_validation[0]} -> "
-        f"{first_validation[1]}"
-    )
+def test_manual_start_index_overrides_random_sampling():
+    data = create_market()
 
-    manual_env = TradingEnv(
-        data=splits.train,
+    env = TradingEnv(
+        data=data,
         window_size=30,
         episode_length=365,
         random_start=True,
     )
 
-    _, manual_info = manual_env.reset(
+    _, info = env.reset(
         seed=42,
-        options={"start_index": 500},
+        options={
+            "start_index": 500,
+        },
     )
 
     assert (
-        manual_info["episode_start_step"]
+        info["episode_start_step"]
         == 500
     )
 
     assert (
-        manual_info["episode_end_step"]
+        info["episode_end_step"]
         == 865
     )
-
-    print(
-        "Manual episode start test passed."
-    )
-
-
-if __name__ == "__main__":
-    main()

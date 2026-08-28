@@ -222,3 +222,62 @@ This change does not constitute an algorithmic contribution. It
 strengthens the validity of the experimental framework by removing
 same-candle execution bias and establishing a causal relationship
 between observations, actions, executions, and rewards.
+
+# Date: 2026-08-12
+
+Milestone: Multi-seed PPO experiment management and validation
+
+Experiment design:
+- PPO baseline is evaluated across multiple independent random seeds.
+- Initial experiment seeds: 42, 123, and 2026.
+- Each seed has an independent training run, best validation model,
+  configuration file, metrics, and equity curve.
+- Experiment outputs are organized by experiment name and seed.
+- The held-out test split remains completely untouched.
+
+Experiment management:
+- Experiment-specific model and result directories were introduced.
+- Training was refactored into a reusable train_single_seed function.
+- PPO evaluation accepts the seed as a command-line argument.
+- Aggregate statistics are generated across seeds.
+- Small tabular experiment results are retained in Git.
+- Model checkpoints, TensorBoard logs, and binary evaluation artifacts
+  remain excluded from Git.
+
+Validation results:
+- Mean total return: 104.50%
+- Total return standard deviation: 33.50%
+- Mean annualized return: 53.75%
+- Mean Sharpe ratio: 1.296
+- Sharpe ratio standard deviation: 0.278
+- Mean Sortino ratio: 1.799
+- Mean maximum drawdown: -30.90%
+- Mean Calmar ratio: 1.879
+- Mean trade count: 128.3
+- Mean cumulative transaction cost: 1,995.86 USD
+
+Baseline comparison:
+- Buy-and-hold validation return: 212.73%
+- Buy-and-hold Sharpe ratio: 1.678
+- Buy-and-hold maximum drawdown: -26.18%
+- Random-policy mean return: 39.28%
+- Random-policy mean Sharpe ratio: 0.705
+
+Interpretation:
+- PPO consistently outperforms the random-policy baseline.
+- PPO does not outperform buy-and-hold on the current validation period.
+- Performance varies across seeds but does not appear extremely unstable.
+- High trade count and cumulative transaction costs indicate that the
+  current PPO policy may be overtrading.
+- The current validation period strongly favors long Bitcoin exposure,
+  so a single validation trajectory is insufficient for robust conclusions.
+
+Research conclusion:
+The PPO baseline demonstrates non-random learning behavior but provides
+no evidence yet that reinforcement learning is superior to a simple
+buy-and-hold strategy. More robust temporal evaluation is required
+before introducing representation-learning or Koopman components.
+
+Next step:
+Implement walk-forward validation and analyze performance across
+different market regimes.
