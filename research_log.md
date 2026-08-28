@@ -281,3 +281,69 @@ before introducing representation-learning or Koopman components.
 Next step:
 Implement walk-forward validation and analyze performance across
 different market regimes.
+
+# Date: 2026-08-28
+## Strong Rule-Based Baselines and Metric Validation
+
+### Objective
+
+Strengthen the experimental baseline suite before introducing Koopman-based representations or multi-agent reinforcement learning.
+
+The goal is to ensure that future RL models are compared not only against trivial strategies such as cash, random actions, and buy-and-hold, but also against simple rule-based trading strategies that can exploit market trends.
+
+### Changes
+
+* Corrected the Sortino ratio implementation to use downside deviation based on the root mean squared negative deviation from the target return.
+* Added automated pytest infrastructure.
+* Added unit tests for:
+
+  * financial performance metrics,
+  * causal trade execution,
+  * environment accounting,
+  * deterministic and random episode sampling.
+* Replaced the previous manually executed environment validation scripts with automated pytest tests.
+* Added two rule-based financial baselines:
+
+  * 10/30-day moving-average crossover,
+  * 20-day time-series momentum.
+* Restricted rule-based strategies to historical information available within the RL agent's observation window.
+* Preserved causal execution: signals are generated using information available through Close(t), while trades execute at Open(t+1).
+
+### Validation Results
+
+Evaluation period:
+
+* Validation split: 2023-02-11 to 2024-11-05.
+* Initial portfolio value: $10,000.
+* Transaction cost: 0.1%.
+
+Results:
+
+| Strategy           | Total Return | Sharpe | Sortino | Maximum Drawdown | Trades |
+| ------------------ | -----------: | -----: | ------: | ---------------: | -----: |
+| Buy and Hold       |      212.73% | 1.6780 |  2.7190 |          -26.18% |      1 |
+| 20-day Momentum    |      101.10% | 1.3484 |  2.2035 |          -34.95% |     57 |
+| MA 10/30 Crossover |       70.12% | 1.0430 |  1.6166 |          -36.84% |     21 |
+| Cash               |        0.00% |    N/A |     N/A |            0.00% |      0 |
+
+The 30-run random baseline produced a mean total return of 39.28%, a mean Sharpe ratio of 0.705, and a mean maximum drawdown of -29.92%.
+
+### Interpretation
+
+Buy-and-hold strongly outperformed both rule-based strategies during the current validation period.
+
+This period contains a strong upward Bitcoin market trend, so the result should not be interpreted as evidence that buy-and-hold is universally superior. Instead, it demonstrates that evaluation on a single market trajectory can strongly favor strategies whose exposure matches the dominant regime.
+
+The 20-day momentum baseline produced substantially higher turnover than the moving-average strategy, executing 57 trades and incurring approximately $1,035 in transaction costs.
+
+The existing PPO baseline has previously achieved approximately 104.5% mean validation return across three seeds, placing its raw-return performance close to the 20-day momentum baseline and substantially below buy-and-hold. This suggests that the current PPO agent has not yet demonstrated behavior clearly superior to a simple trend-following rule.
+
+These findings reinforce the need for multi-window or walk-forward validation before evaluating more complex models.
+
+### Methodological Decision
+
+The MA 10/30 and 20-day momentum parameters will not be tuned against the current validation interval.
+
+Repeatedly searching for better rule parameters on the same validation trajectory would introduce validation-set overfitting and weaken the fairness of future comparisons.
+
+The next experimental milestone is therefore to construct a multi-window / walk-forward evaluation protocol that measures strategy performance across different market conditions before introducing Koopman or MARL components.

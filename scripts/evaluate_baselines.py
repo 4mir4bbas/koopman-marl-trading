@@ -14,12 +14,16 @@ from src.evaluation.metrics import (
     PerformanceMetrics,
     calculate_performance_metrics,
 )
+from src.evaluation.baselines import (
+    Policy,
+    buy_and_hold_policy,
+    cash_policy,
+    create_momentum_policy,
+    create_moving_average_crossover_policy,
+    create_random_policy,
+)
 
 
-Policy = Callable[
-    [TradingEnv, np.ndarray, dict[str, object], int],
-    int,
-]
 
 
 @dataclass(frozen=True)
@@ -28,51 +32,6 @@ class EpisodeResult:
     metrics: PerformanceMetrics
 
 
-def cash_policy(
-    env: TradingEnv,
-    observation: np.ndarray,
-    info: dict[str, object],
-    step_number: int,
-) -> int:
-    del observation, info, step_number
-    return env.HOLD
-
-
-def buy_and_hold_policy(
-    env: TradingEnv,
-    observation: np.ndarray,
-    info: dict[str, object],
-    step_number: int,
-) -> int:
-    del observation, info
-
-    if step_number == 0:
-        return env.BUY
-
-    return env.HOLD
-
-
-def create_random_policy(
-    seed: int,
-) -> Policy:
-    rng = np.random.default_rng(seed)
-
-    def random_policy(
-        env: TradingEnv,
-        observation: np.ndarray,
-        info: dict[str, object],
-        step_number: int,
-    ) -> int:
-        del observation, info, step_number
-
-        return int(
-            rng.integers(
-                low=0,
-                high=env.action_space.n,
-            )
-        )
-
-    return random_policy
 
 
 def run_episode(
@@ -287,6 +246,29 @@ def main() -> None:
         policy=buy_and_hold_policy,
     )
 
+
+    moving_average_result = run_episode(
+        env=create_environment(
+            evaluation_data
+        ),
+        policy=create_moving_average_crossover_policy(
+            short_window=10,
+            long_window=30,
+        ),
+    )
+
+    momentum_result = run_episode(
+        env=create_environment(
+            evaluation_data
+        ),
+        policy=create_momentum_policy(
+            lookback=20,
+        ),
+    )
+    
+
+
+
     random_results: list[EpisodeResult] = []
 
     for seed in range(30):
@@ -305,6 +287,16 @@ def main() -> None:
     print_metrics(
         "Buy-and-hold baseline",
         buy_hold_result.metrics,
+    )
+
+    print_metrics(
+        "Moving-average crossover baseline",
+        moving_average_result.metrics,
+    )
+
+    print_metrics(
+        "20-day momentum baseline",
+        momentum_result.metrics,
     )
 
     random_summary = summarize_random_runs(
@@ -328,6 +320,12 @@ def main() -> None:
             "cash": cash_result.portfolio_values,
             "buy_and_hold": (
                 buy_hold_result.portfolio_values
+            ),
+            "moving_average_10_30": (
+                moving_average_result.portfolio_values
+            ),
+            "momentum_20": (
+                momentum_result.portfolio_values
             ),
             "random_seed_0": (
                 representative_random_result.portfolio_values
