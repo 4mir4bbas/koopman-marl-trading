@@ -508,3 +508,154 @@ The initial walk-forward benchmark suite will include:
 No baseline parameters will be tuned separately for individual folds.
 
 The goal is to measure how strongly strategy performance varies across historical market conditions before introducing PPO walk-forward training.
+
+
+# Date: 2026-09-13
+## Walk-Forward Rule-Based Baseline Evaluation
+
+### Objective
+
+Evaluate the fixed financial baselines across multiple historical market periods using the newly introduced expanding-window walk-forward protocol.
+
+The purpose of this experiment was to determine whether conclusions obtained from the previous single validation trajectory were robust across substantially different Bitcoin market conditions.
+
+No strategy parameters were tuned separately for individual folds.
+
+The following parameters remained frozen:
+
+* Moving-average crossover: 10/30 days
+* Momentum: 20-day lookback
+* Observation window: 30 days
+* Transaction cost: 0.1%
+* Initial portfolio value: $10,000
+
+The final test period beginning on 2024-11-06 remained untouched.
+
+### Implementation
+
+A reusable evaluation/backtesting module was introduced so that standard validation and walk-forward evaluation use the same episode execution logic.
+
+The common evaluation runner handles:
+
+* deterministic environment creation,
+* fixed evaluation start indices,
+* fixed evaluation episode lengths,
+* portfolio value collection,
+* performance metric calculation.
+
+The previous single-window baseline evaluation script was refactored to reuse this common implementation.
+
+A walk-forward baseline evaluation script was added for the seven development folds from 2018 through 2024.
+
+For every fold, the following strategies were evaluated:
+
+* Cash
+* Buy and Hold
+* MA 10/30 crossover
+* 20-day Momentum
+* Random policy
+
+The random strategy was evaluated using 30 seeds per fold.
+
+Random-run results were preserved separately from per-fold averages so that market periods, rather than individual random seeds, remain the primary unit of across-fold comparison.
+
+### Automated Tests
+
+Two additional automated tests were added for the common backtest runner.
+
+The complete project test suite now contains 20 passing tests.
+
+The new tests verify that:
+
+* evaluation begins and ends at the requested episode boundaries,
+* a buy-and-hold strategy produces positive returns on a deterministic increasing synthetic market.
+
+### Walk-Forward Results
+
+Per-fold total returns were:
+
+| Year | Buy and Hold | MA 10/30 | Momentum 20 | Random Mean |
+| ---- | -----------: | -------: | ----------: | ----------: |
+| 2018 |      -72.56% |  -38.67% |     -32.59% |     -52.38% |
+| 2019 |       86.70% |   71.36% |     117.62% |      27.69% |
+| 2020 |      302.26% |  382.82% |     349.42% |      78.26% |
+| 2021 |       57.47% |   17.85% |      66.75% |       9.56% |
+| 2022 |      -65.33% |  -45.47% |     -47.96% |     -40.58% |
+| 2023 |      153.96% |   75.80% |     119.58% |      45.12% |
+| 2024 |       56.81% |    6.11% |       3.29% |      16.20% |
+
+Across-fold results were:
+
+| Strategy     | Mean Return | Median Return | Mean Sharpe | Worst Maximum Drawdown |
+| ------------ | ----------: | ------------: | ----------: | ---------------------: |
+| Buy and Hold |      74.19% |        57.47% |       0.804 |                -81.53% |
+| MA 10/30     |      67.11% |        17.85% |       0.707 |                -50.45% |
+| Momentum 20  |      82.30% |        66.75% |       0.902 |                -49.41% |
+| Random       |      11.98% |        16.20% |       0.254 |                -64.33% |
+
+The 20-day momentum strategy outperformed Buy and Hold by total return in five of the seven evaluation folds.
+
+The MA 10/30 strategy outperformed Buy and Hold in three of seven folds.
+
+### Interpretation
+
+The walk-forward results substantially change the interpretation obtained from the previous single validation period.
+
+During the previous validation trajectory, Buy and Hold strongly outperformed the rule-based strategies. However, across multiple historical periods, this superiority was not stable.
+
+The 20-day momentum strategy currently provides the strongest simple rule-based benchmark.
+
+It achieved:
+
+* the highest mean total return,
+* the highest median total return,
+* the highest mean Sharpe ratio,
+* a substantially smaller worst drawdown than Buy and Hold,
+* higher total return than Buy and Hold in five of seven folds.
+
+The results also demonstrate strong regime dependence.
+
+During major declining periods such as 2018 and 2022, trend-following strategies reduced losses substantially relative to continuous market exposure.
+
+During some persistent upward periods, particularly 2023 and 2024, the same trend-following logic lost a substantial amount of upside relative to Buy and Hold.
+
+This indicates that a single fixed trading behavior is not consistently dominant across market conditions.
+
+The result provides empirical motivation for studying adaptation under changing market dynamics, but it does not by itself demonstrate that any specific regime-detection or Koopman-based mechanism is appropriate.
+
+### Methodological Note
+
+The 2024 fold ends on 2024-11-05 and is therefore shorter than the complete calendar-year folds.
+
+Consequently, raw total-return averages should not be treated as the sole across-fold performance measure.
+
+Future comparisons should emphasize multiple complementary statistics including:
+
+* annualized return,
+* Sharpe ratio,
+* maximum drawdown,
+* per-fold benchmark-relative return,
+* fold win rate.
+
+### Baseline Decision
+
+The 20-day momentum strategy should now be treated as a primary financial baseline for future RL experiments.
+
+A future RL model should not be considered compelling merely because it beats a random policy or produces positive returns.
+
+It should demonstrate meaningful performance relative to both:
+
+* Buy and Hold,
+* the fixed 20-day Momentum strategy,
+
+across multiple walk-forward periods.
+
+### Next Step
+
+Extend the walk-forward framework to PPO.
+
+PPO should be trained separately for every outer fold using only historical data available before that fold.
+
+The outer evaluation period must not be used for checkpoint selection.
+
+Initial PPO walk-forward development runs will use the existing frozen PPO configuration and a small number of seeds before scaling to the larger multi-seed experiment.

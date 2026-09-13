@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
@@ -9,10 +8,11 @@ import pandas as pd
 
 from src.data.loader import load_ohlcv
 from src.data.split import chronological_split
-from src.environments.trading_env import TradingEnv
-from src.evaluation.metrics import (
-    PerformanceMetrics,
-    calculate_performance_metrics,
+from src.evaluation.metrics import PerformanceMetrics
+from src.evaluation.backtest import (
+    EpisodeResult,
+    create_evaluation_environment,
+    run_episode,
 )
 from src.evaluation.baselines import (
     Policy,
@@ -24,91 +24,6 @@ from src.evaluation.baselines import (
 )
 
 
-
-
-@dataclass(frozen=True)
-class EpisodeResult:
-    portfolio_values: pd.Series
-    metrics: PerformanceMetrics
-
-
-
-
-def run_episode(
-    env: TradingEnv,
-    policy: Policy,
-    seed: int = 42,
-) -> EpisodeResult:
-    observation, info = env.reset(seed=seed)
-
-    timestamps = [pd.Timestamp(info["timestamp"])]
-    portfolio_values = [
-        float(info["portfolio_value"])
-    ]
-
-    terminated = False
-    truncated = False
-    step_number = 0
-
-    while not terminated and not truncated:
-        action = policy(
-            env,
-            observation,
-            info,
-            step_number,
-        )
-
-        (
-            observation,
-            _,
-            terminated,
-            truncated,
-            info,
-        ) = env.step(action)
-
-        timestamps.append(pd.Timestamp(info["timestamp"]))
-        portfolio_values.append(
-            float(info["portfolio_value"])
-        )
-
-        step_number += 1
-
-    equity_curve = pd.Series(
-        portfolio_values,
-        index=pd.DatetimeIndex(timestamps),
-        name="portfolio_value",
-        dtype=np.float64,
-    )
-
-    metrics = calculate_performance_metrics(
-        portfolio_values=equity_curve,
-        trade_count=int(info["trade_count"]),
-        total_transaction_cost=float(
-            info["total_transaction_cost"]
-        ),
-        periods_per_year=365,
-    )
-
-    return EpisodeResult(
-        portfolio_values=equity_curve,
-        metrics=metrics,
-    )
-
-
-
-def create_environment(
-    data: pd.DataFrame,
-) -> TradingEnv:
-    window_size = 30
-    return TradingEnv(
-        data=data,
-        window_size=30,
-        episode_length=None,
-        random_start=False,
-        fixed_start_index=window_size - 1,
-        initial_balance=10_000.0,
-        transaction_cost=0.001,
-    )
 
 
 def summarize_random_runs(
@@ -237,18 +152,18 @@ def main() -> None:
     evaluation_data = splits.validation
 
     cash_result = run_episode(
-        env=create_environment(evaluation_data),
+        env=create_evaluation_environment(evaluation_data),
         policy=cash_policy,
     )
 
     buy_hold_result = run_episode(
-        env=create_environment(evaluation_data),
+        env=create_evaluation_environment(evaluation_data),
         policy=buy_and_hold_policy,
     )
 
 
     moving_average_result = run_episode(
-        env=create_environment(
+        env=create_evaluation_environment(
             evaluation_data
         ),
         policy=create_moving_average_crossover_policy(
@@ -258,7 +173,7 @@ def main() -> None:
     )
 
     momentum_result = run_episode(
-        env=create_environment(
+        env=create_evaluation_environment(
             evaluation_data
         ),
         policy=create_momentum_policy(
@@ -273,7 +188,7 @@ def main() -> None:
 
     for seed in range(30):
         result = run_episode(
-            env=create_environment(evaluation_data),
+            env=create_evaluation_environment(evaluation_data),
             policy=create_random_policy(seed),
             seed=seed,
         )
