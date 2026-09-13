@@ -347,3 +347,164 @@ The MA 10/30 and 20-day momentum parameters will not be tuned against the curren
 Repeatedly searching for better rule parameters on the same validation trajectory would introduce validation-set overfitting and weaken the fairness of future comparisons.
 
 The next experimental milestone is therefore to construct a multi-window / walk-forward evaluation protocol that measures strategy performance across different market conditions before introducing Koopman or MARL components.
+
+# Date: 2026-09-13
+## Walk-Forward Evaluation Protocol v1
+
+### Objective
+
+Replace the single-path validation setup with a multi-window chronological evaluation protocol before introducing Koopman-based representations or MARL.
+
+The previous validation period covered only one historical trajectory and was strongly influenced by the dominant Bitcoin market regime during that interval. A single validation trajectory is insufficient for assessing robustness under financial non-stationarity.
+
+The final test period remains untouched.
+
+### Development and Final Test Separation
+
+The dataset is now conceptually divided into:
+
+* Development period: 2015-01-01 to 2024-11-05
+* Final untouched test: 2024-11-06 to 2026-08-04
+
+The final test contains 636 observations and is excluded from all walk-forward folds.
+
+It must not be used for:
+
+* hyperparameter tuning,
+* model selection,
+* architecture decisions,
+* baseline parameter selection,
+* feature selection.
+
+### Walk-Forward Design
+
+An expanding-window evaluation protocol was selected.
+
+The first evaluation year is 2018, providing approximately three full years of historical data before the first evaluation window.
+
+Each subsequent fold adds the previous evaluation year to the available historical training data.
+
+The folds are:
+
+| Fold | Training Period          | Evaluation Period        |
+| ---- | ------------------------ | ------------------------ |
+| 2018 | 2015-01-01 to 2017-12-31 | 2018-01-01 to 2018-12-31 |
+| 2019 | 2015-01-01 to 2018-12-31 | 2019-01-01 to 2019-12-31 |
+| 2020 | 2015-01-01 to 2019-12-31 | 2020-01-01 to 2020-12-31 |
+| 2021 | 2015-01-01 to 2020-12-31 | 2021-01-01 to 2021-12-31 |
+| 2022 | 2015-01-01 to 2021-12-31 | 2022-01-01 to 2022-12-31 |
+| 2023 | 2015-01-01 to 2022-12-31 | 2023-01-01 to 2023-12-31 |
+| 2024 | 2015-01-01 to 2023-12-31 | 2024-01-01 to 2024-11-05 |
+
+Expanding rather than rolling training windows were selected for the initial protocol in order to avoid introducing an additional arbitrary training-window-length hyperparameter.
+
+Rolling-window training may later be studied explicitly as an adaptation mechanism for non-stationary environments.
+
+### Observation Context
+
+The trading environment uses a 30-observation state window.
+
+For each evaluation fold, the 29 immediately preceding historical rows are therefore supplied as context.
+
+For example:
+
+29 historical context rows + first evaluation row = 30-row observation.
+
+These context rows are not part of the scored evaluation period. They exist only to construct the first causal observation without discarding approximately one month from each evaluation fold.
+
+This preserves the causal information structure:
+
+information through Close(t)
+→ action decision
+→ execution at Open(t+1).
+
+### PPO Model-Selection Decision
+
+Outer walk-forward evaluation windows must not be used repeatedly for checkpoint selection.
+
+The current PPO implementation uses validation-based checkpoint selection through an EvalCallback. That procedure must not be applied directly to outer walk-forward evaluation folds, because repeatedly selecting the best checkpoint using an outer fold would invalidate its out-of-sample interpretation.
+
+For the first PPO walk-forward baseline, the intended protocol is:
+
+historical fold training data
+→ fixed training budget
+→ final PPO model
+→ one evaluation on the corresponding outer fold.
+
+Existing PPO hyperparameters will initially remain frozen.
+
+Any future hyperparameter tuning should use an inner training/validation procedure rather than the outer evaluation fold.
+
+### Implementation
+
+Added a walk-forward fold generator that explicitly separates:
+
+* training data,
+* historical observation context,
+* evaluation data.
+
+The generator enforces chronological ordering and prevents overlap between training and evaluation data.
+
+Each fold exposes the evaluation environment data as:
+
+context + evaluation.
+
+The first scored evaluation observation is explicitly identified after the context rows.
+
+### Automated Validation
+
+Five automated tests were added for the walk-forward infrastructure.
+
+The tests verify that:
+
+* exactly seven expected folds are produced,
+* fold boundaries match the intended calendar periods,
+* each fold contains exactly 29 context rows,
+* context rows are the final historical observations before evaluation,
+* evaluation periods do not overlap,
+* the final test period is absent from all folds,
+* unsorted chronological data is rejected.
+
+After these additions, the complete automated test suite contains:
+
+18 passing tests.
+
+### Real-Data Sanity Check
+
+The walk-forward generator was executed on the actual BTC-USD daily dataset.
+
+Observed folds:
+
+* 2018: 1096 training rows, 29 context rows, 365 evaluation rows
+* 2019: 1461 training rows, 29 context rows, 365 evaluation rows
+* 2020: 1826 training rows, 29 context rows, 366 evaluation rows
+* 2021: 2192 training rows, 29 context rows, 365 evaluation rows
+* 2022: 2557 training rows, 29 context rows, 365 evaluation rows
+* 2023: 2922 training rows, 29 context rows, 365 evaluation rows
+* 2024: 3287 training rows, 29 context rows, 310 evaluation rows
+
+The final walk-forward evaluation observation is:
+
+2024-11-05.
+
+The dataset continues through:
+
+2026-08-04.
+
+There are 636 observations after the walk-forward development period, confirming that the final test period remains isolated.
+
+### Next Step
+
+Run the fixed rule-based strategies independently on all seven walk-forward evaluation folds.
+
+The initial walk-forward benchmark suite will include:
+
+* Cash
+* Buy and Hold
+* MA 10/30 crossover
+* 20-day momentum
+* Random policy
+
+No baseline parameters will be tuned separately for individual folds.
+
+The goal is to measure how strongly strategy performance varies across historical market conditions before introducing PPO walk-forward training.
