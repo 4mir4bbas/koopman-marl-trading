@@ -776,3 +776,95 @@ The resulting distribution will indicate whether the poor 2018 performance obser
 
 If the multi-seed pipeline is stable, the experiment will then be expanded to all seven walk-forward folds using the same three development seeds.
 
+
+# Date 2026-09-13
+## PPO Seed Sensitivity — 2018 Walk-Forward Fold
+
+### Objective
+
+Determine whether the weak PPO performance observed in the first 2018 walk-forward run was primarily caused by random-seed variability or represented a more systematic behavior of the current PPO baseline.
+
+The same frozen PPO configuration was trained independently using three development seeds:
+
+* 42
+* 123
+* 2026
+
+All runs used:
+
+* Training period: 2015-01-01 to 2017-12-31
+* Evaluation period: 2018-01-01 to 2018-12-31
+* Training budget: 100,000 timesteps
+* No outer-fold checkpoint selection
+* Deterministic evaluation policy
+
+### Results
+
+| Seed | Total Return |  Sharpe | Maximum Drawdown | Trades | Transaction Costs |
+| ---- | -----------: | ------: | ---------------: | -----: | ----------------: |
+| 42   |      -61.83% | -1.0564 |          -71.90% |     96 |           $749.20 |
+| 123  |      -61.65% | -1.0642 |          -74.72% |     91 |           $562.24 |
+| 2026 |      -59.30% | -0.8926 |          -76.27% |     92 |           $556.15 |
+
+Across the three seeds:
+
+* Mean total return: -60.93%
+* Total-return standard deviation: 1.41 percentage points
+* Mean Sharpe ratio: -1.004
+* Sharpe standard deviation: 0.097
+* Mean maximum drawdown: -74.29%
+* Mean trade count: 93
+* Trade-count standard deviation: 2.65
+* Mean transaction costs: approximately $622.53
+
+### Comparison With 2018 Financial Baselines
+
+The fixed 2018 baselines produced:
+
+* Buy and Hold: -72.56%
+* MA 10/30: -38.67%
+* Momentum 20: -32.59%
+* Random mean: -52.38%
+
+The PPO baseline consistently outperformed Buy and Hold but substantially underperformed both trend-following baselines.
+
+Its mean total return also underperformed the 30-seed random-policy mean.
+
+### Interpretation
+
+Seed variability does not appear to be the primary explanation for PPO's weak 2018 performance.
+
+All three PPO runs produced highly similar returns, drawdowns, and trading frequencies.
+
+The small standard deviation in total return indicates that the observed performance is relatively systematic under the current model and training configuration.
+
+The consistency of approximately 90-96 executed trades across seeds also suggests that frequent position switching is a learned behavioral characteristic of the current PPO baseline rather than an isolated stochastic outcome.
+
+The current environment uses log portfolio return as the reward, and transaction costs affect portfolio value directly. Therefore transaction costs are already reflected in the reward signal.
+
+Despite this, PPO repeatedly generated relatively high turnover during the 2018 evaluation period.
+
+No changes to reward design, PPO hyperparameters, or transaction-cost treatment will be made based solely on this fold.
+
+Changing the algorithm in response to one outer evaluation period would risk adapting the baseline to that particular historical period.
+
+### Decision
+
+The existing PPO configuration will remain frozen while evaluation is expanded across all seven development walk-forward folds.
+
+The immediate objective is to determine whether the weakness observed in 2018 generalizes across other market periods or whether PPO performance strongly depends on market dynamics.
+
+The development-scale experiment will therefore use:
+
+* 7 walk-forward folds
+* 3 seeds per fold
+* 21 total PPO runs
+
+The same three seeds will be used consistently across all folds:
+
+* 42
+* 123
+* 2026
+
+Only after the cross-fold results are available will changes to the PPO baseline or environment be considered.
+
