@@ -868,3 +868,147 @@ The same three seeds will be used consistently across all folds:
 
 Only after the cross-fold results are available will changes to the PPO baseline or environment be considered.
 
+
+# Date: 2026-09-13
+## Full PPO Walk-Forward Development Experiment
+
+### Objective
+
+Evaluate the frozen PPO baseline across all seven walk-forward development folds using three independent random seeds per fold.
+
+The objective was to determine whether PPO performance observed in the 2018 smoke test generalized across different historical market conditions and whether model performance remained stable across seeds.
+
+No PPO hyperparameters, reward functions, observation definitions, action definitions, or transaction-cost assumptions were modified during this experiment.
+
+### Experimental Setup
+
+Walk-forward folds:
+
+* 2018
+* 2019
+* 2020
+* 2021
+* 2022
+* 2023
+* 2024 through 2024-11-05
+
+Seeds:
+
+* 42
+* 123
+* 2026
+
+Total PPO runs:
+
+21
+
+Each model used:
+
+* expanding historical training data,
+* 100,000 PPO training timesteps,
+* frozen PPO hyperparameters,
+* deterministic evaluation,
+* the final trained model rather than a validation-selected checkpoint,
+* no access to the outer evaluation period during training.
+
+The final test period beginning on 2024-11-06 remained untouched.
+
+### Results
+
+Mean PPO performance across seeds for each fold:
+
+| Fold | Mean Return | Return Std. | Mean Sharpe | Mean Maximum Drawdown | Mean Trades |
+| ---- | ----------: | ----------: | ----------: | --------------------: | ----------: |
+| 2018 |     -60.93% |       1.41% |      -1.004 |               -74.29% |        93.0 |
+| 2019 |      64.27% |      36.48% |       1.134 |               -39.27% |        79.0 |
+| 2020 |     137.98% |      82.08% |       1.792 |               -39.12% |        92.7 |
+| 2021 |      19.86% |      11.35% |       0.601 |               -46.22% |       108.3 |
+| 2022 |     -71.27% |       6.60% |      -2.031 |               -73.56% |        68.3 |
+| 2023 |      77.04% |      79.22% |       1.594 |               -18.54% |       102.0 |
+| 2024 |      11.75% |      28.75% |       0.437 |               -33.30% |        83.0 |
+
+Across the seven folds:
+
+* Mean fold return: 25.53%
+* Median fold return: 19.86%
+* Mean fold Sharpe ratio: 0.3603
+* Mean maximum drawdown: -46.33%
+* PPO beat Buy and Hold in 1 of 7 folds
+* PPO beat 20-day Momentum in 1 of 7 folds
+
+### Interpretation
+
+The current PPO baseline is not competitive with the strongest simple financial baselines.
+
+Across the walk-forward development periods, PPO beat Buy and Hold in only one fold and beat the fixed 20-day Momentum strategy in only one fold.
+
+The result therefore cannot be explained purely by the unusual 2018 bear-market period.
+
+Performance also shows substantial seed sensitivity in several folds.
+
+In particular:
+
+* 2020 return standard deviation was approximately 82 percentage points.
+* 2023 return standard deviation was approximately 79 percentage points.
+
+This indicates that PPO training instability depends strongly on the market period.
+
+In contrast, the 2018 results were highly consistent across seeds, indicating a systematic failure rather than stochastic training failure in that period.
+
+Mean trading activity remained high across the folds, with roughly 89 trades per evaluation year on average.
+
+The combination of weak benchmark-relative performance, high turnover, and large seed-dependent variability in some regimes indicates that the existing PPO implementation should be treated as a preliminary baseline rather than a sufficiently strong reference model.
+
+### Baseline Audit
+
+The current environment already applies causal window normalization to market observations:
+
+* OHLC prices are expressed relative to the current close,
+* volume is standardized within the observation window.
+
+Therefore the observed weakness should not immediately be attributed to completely unnormalized raw market inputs.
+
+However, the discrete action representation contains redundant actions.
+
+The current actions are:
+
+* HOLD
+* BUY
+* SELL
+
+When the portfolio is already long, BUY and HOLD lead to the same position.
+
+When the portfolio is in cash, SELL and HOLD lead to the same position.
+
+This redundancy may unnecessarily complicate policy learning.
+
+The current training budget of 100,000 PPO timesteps may also be insufficient for a strong PPO benchmark.
+
+### Methodological Decision
+
+Koopman representations or MARL components will not yet be introduced.
+
+First, a stronger and better-validated PPO baseline will be constructed.
+
+Improvements to the PPO baseline must be justified structurally or calibrated using historical data that precedes the outer walk-forward evaluation periods.
+
+The outer walk-forward results will not be used for direct hyperparameter optimization.
+
+### Next Step
+
+Create a PPO baseline calibration protocol using only pre-2018 data.
+
+The initial calibration period will use:
+
+* Inner training: 2015-01-01 to 2016-12-31
+* Inner validation: 2017-01-01 to 2017-12-31
+
+The calibration study will investigate:
+
+1. a non-redundant target-position action representation,
+2. sensitivity to PPO training budget,
+3. trading behavior and turnover,
+4. seed stability.
+
+After selecting a baseline configuration using only pre-2018 calibration data, that configuration will be frozen and rerun across the seven walk-forward development folds.
+

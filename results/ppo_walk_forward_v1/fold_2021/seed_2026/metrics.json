@@ -1,0 +1,13 @@
+{
+    "initial_value": 10000.0,
+    "final_value": 11468.738366613756,
+    "total_return": 0.14687383666137555,
+    "annualized_return": 0.14730569653450853,
+    "annualized_volatility": 0.6286775513657281,
+    "sharpe_ratio": 0.530450792723865,
+    "sortino_ratio": 0.798434437520775,
+    "maximum_drawdown": -0.5356787097966218,
+    "calmar_ratio": 0.2749888950980249,
+    "trade_count": 98,
+    "total_transaction_cost": 1307.1442175416248
+}
