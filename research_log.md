@@ -659,3 +659,120 @@ PPO should be trained separately for every outer fold using only historical data
 The outer evaluation period must not be used for checkpoint selection.
 
 Initial PPO walk-forward development runs will use the existing frozen PPO configuration and a small number of seeds before scaling to the larger multi-seed experiment.
+
+# Date: 2026-09-13
+## PPO Walk-Forward Evaluation Infrastructure
+
+### Objective
+
+Extend the walk-forward framework to PPO while preventing the outer evaluation period from influencing model training or checkpoint selection.
+
+The initial goal was not to obtain a strong performance result, but to validate the complete training and evaluation pipeline on a single fold and seed before scaling the experiment.
+
+### Methodological Design
+
+The PPO walk-forward protocol differs from the previous PPO baseline training procedure.
+
+The previous procedure periodically evaluated the model on the validation period during training and selected the best checkpoint using an evaluation callback.
+
+This is not appropriate for an outer walk-forward evaluation fold because repeated evaluation and checkpoint selection on the outer fold would make that period part of the model-selection process.
+
+For walk-forward PPO, the protocol is therefore:
+
+historical training data
+→ fixed PPO training budget
+→ final trained model
+→ one deterministic evaluation on the outer fold.
+
+No evaluation callback or outer-fold checkpoint selection is used.
+
+The existing PPO hyperparameters remain frozen.
+
+### Implementation
+
+A new PPO walk-forward training script was introduced.
+
+Each run is identified by:
+
+* evaluation fold,
+* random seed.
+
+The run stores:
+
+* the final PPO model,
+* run metadata,
+* evaluation metrics,
+* evaluation equity curve,
+* TensorBoard logs.
+
+The metadata explicitly records the training and evaluation periods and states that the outer evaluation fold was not used during training.
+
+The model and result directories are separated by fold and seed to prevent accidental overwriting between experiments.
+
+### Automated Validation
+
+Two additional tests were added for walk-forward PPO fold selection.
+
+The complete automated test suite now contains 22 tests.
+
+The tests verify that:
+
+* the requested walk-forward fold is selected correctly,
+* unknown fold identifiers are rejected.
+
+### First End-to-End Run
+
+The first PPO walk-forward smoke test used:
+
+* Fold: 2018
+* Seed: 42
+* Training period: 2015-01-01 to 2017-12-31
+* Evaluation period: 2018-01-01 to 2018-12-31
+* Training budget: 100,000 PPO timesteps
+
+Results:
+
+* Total Return: -61.83%
+* Annualized Return: -61.93%
+* Sharpe Ratio: -1.0564
+* Sortino Ratio: -1.3747
+* Maximum Drawdown: -71.90%
+* Calmar Ratio: -0.8613
+* Trade Count: 96
+* Transaction Costs: $749.20
+
+For comparison, the fixed 2018 financial baselines produced:
+
+* Buy and Hold: -72.56%
+* MA 10/30: -38.67%
+* Momentum 20: -32.59%
+* Random mean: -52.38%
+
+### Interpretation
+
+The first PPO seed outperformed Buy and Hold during the 2018 declining market but underperformed the MA 10/30 and Momentum 20 strategies.
+
+It also underperformed the mean result of the 30-seed random policy baseline.
+
+The PPO agent executed 96 trades and incurred approximately $749 in transaction costs, suggesting substantial trading activity.
+
+However, no behavioral or performance conclusion should be drawn from a single PPO seed.
+
+The purpose of this run was primarily to verify the integrity of the walk-forward PPO pipeline.
+
+The successful run confirms that PPO can be trained exclusively on historical fold data, saved as a final model without outer-fold checkpoint selection, and subsequently evaluated once on the unseen outer period.
+
+### Next Step
+
+Measure seed sensitivity before scaling the experiment across all walk-forward folds.
+
+Run the 2018 PPO experiment using the existing development seeds:
+
+* 42
+* 123
+* 2026
+
+The resulting distribution will indicate whether the poor 2018 performance observed for seed 42 is representative or primarily a seed-specific outcome.
+
+If the multi-seed pipeline is stable, the experiment will then be expanded to all seven walk-forward folds using the same three development seeds.
+
