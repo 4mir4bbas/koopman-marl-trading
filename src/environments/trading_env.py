@@ -6,6 +6,7 @@ import gymnasium as gym
 import numpy as np
 import pandas as pd
 from gymnasium import spaces
+from typing import Any, Literal
 
 
 class TradingEnv(gym.Env[np.ndarray, int]):
@@ -39,6 +40,14 @@ class TradingEnv(gym.Env[np.ndarray, int]):
     BUY = 1
     SELL = 2
 
+    CASH = 0
+    LONG = 1
+
+    ACTION_MODES = (
+        "orders",
+        "target_position",
+    )
+
     MARKET_COLUMNS = (
         "open",
         "high",
@@ -56,6 +65,10 @@ class TradingEnv(gym.Env[np.ndarray, int]):
         fixed_start_index: int | None = None,
         initial_balance: float = 10_000.0,
         transaction_cost: float = 0.001,
+        action_mode: Literal[
+            "orders",
+            "target_position",
+        ] = "orders",
         render_mode: str | None = None,
     ) -> None:
         super().__init__()
@@ -68,6 +81,7 @@ class TradingEnv(gym.Env[np.ndarray, int]):
             fixed_start_index=fixed_start_index,
             initial_balance=initial_balance,
             transaction_cost=transaction_cost,
+            action_mode=action_mode,
             render_mode=render_mode,
         )
 
@@ -78,9 +92,13 @@ class TradingEnv(gym.Env[np.ndarray, int]):
         self.fixed_start_index = fixed_start_index
         self.initial_balance = float(initial_balance)
         self.transaction_cost = float(transaction_cost)
+        self.action_mode=action_mode
         self.render_mode = render_mode
 
-        self.action_space = spaces.Discrete(3)
+        if self.action_mode == "orders":
+            self.action_space = spaces.Discrete(3)
+        else:
+            self.action_space = spaces.Discrete(2)
 
         observation_size = (
             window_size * len(self.MARKET_COLUMNS) + 3
@@ -115,6 +133,7 @@ class TradingEnv(gym.Env[np.ndarray, int]):
         fixed_start_index: int | None,
         initial_balance: float,
         transaction_cost: float,
+        action_mode: str,
         render_mode: str | None,
     ) -> None:
         if not isinstance(data, pd.DataFrame):
@@ -213,6 +232,12 @@ class TradingEnv(gym.Env[np.ndarray, int]):
         if not 0.0 <= transaction_cost < 1.0:
             raise ValueError(
                 "transaction_cost must be in [0, 1)."
+            )
+
+        if action_mode not in cls.ACTION_MODES:
+            raise ValueError(
+                f"Unsupported action_mode={action_mode!r}. "
+                f"Supported values: {cls.ACTION_MODES}."
             )
 
         supported_render_modes = cls.metadata[
@@ -487,14 +512,23 @@ class TradingEnv(gym.Env[np.ndarray, int]):
             info,
         )
 
+
     def _execute_action(
         self,
         action: int,
         execution_price: float,
     ) -> None:
-        if action == self.BUY:
+        if self.action_mode == "orders":
+            if action == self.BUY:
+                self._buy(execution_price)
+            elif action == self.SELL:
+                self._sell(execution_price)
+
+            return
+
+        if action == self.LONG:
             self._buy(execution_price)
-        elif action == self.SELL:
+        elif action == self.CASH:
             self._sell(execution_price)
 
     def _buy(
@@ -762,6 +796,7 @@ class TradingEnv(gym.Env[np.ndarray, int]):
             "total_transaction_cost": float(
                 self.total_transaction_cost
             ),
+            "action_mode": (self.action_mode),
         }
 
     def render(self) -> None:

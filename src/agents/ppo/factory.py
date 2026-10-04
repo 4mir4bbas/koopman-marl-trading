@@ -20,6 +20,7 @@ def create_training_environment(
         fixed_start_index=None,
         initial_balance=config.initial_balance,
         transaction_cost=config.transaction_cost,
+        action_mode=config.action_mode,
     )
 
     return Monitor(env)
@@ -39,6 +40,7 @@ def create_evaluation_environment(
         fixed_start_index=config.window_size - 1,
         initial_balance=config.initial_balance,
         transaction_cost=config.transaction_cost,
+        action_mode=config.action_mode,
     )
 
     return Monitor(env)

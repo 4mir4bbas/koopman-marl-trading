@@ -359,6 +359,9 @@ def main() -> None:
             transaction_cost=(
                 config.transaction_cost
             ),
+            action_mode=(
+                config.action_mode
+            ),
         )
     )
 

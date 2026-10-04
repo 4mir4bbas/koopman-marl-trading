@@ -27,6 +27,7 @@ def create_evaluation_environment(
     episode_length: int | None = None,
     initial_balance: float = 10_000.0,
     transaction_cost: float = 0.001,
+    action_mode: str = "orders",
 ) -> TradingEnv:
     if start_index is None:
         start_index = window_size - 1
@@ -39,6 +40,7 @@ def create_evaluation_environment(
         fixed_start_index=start_index,
         initial_balance=initial_balance,
         transaction_cost=transaction_cost,
+        action_mode=action_mode
     )
 
 

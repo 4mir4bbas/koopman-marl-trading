@@ -1012,3 +1012,113 @@ The calibration study will investigate:
 
 After selecting a baseline configuration using only pre-2018 calibration data, that configuration will be frozen and rerun across the seven walk-forward development folds.
 
+
+# Date: 2026-10-4
+
+## PPO Baseline v2 — Target-Position Action Space
+
+### Objective
+
+Strengthen the PPO baseline before introducing Koopman or MARL components.
+
+The original trading environment used a three-action order representation:
+
+- HOLD
+- BUY
+- SELL
+
+This representation contains redundant decisions because BUY and HOLD are equivalent when the portfolio is already long, while SELL and HOLD are equivalent when the portfolio is already in cash.
+
+The first PPO-v2 modification therefore replaces this redundant representation with an optional target-position action space.
+
+### Target-Position Formulation
+
+The new action representation is:
+
+- 0 = CASH
+- 1 = LONG
+
+The action specifies the portfolio exposure desired for the next period rather than issuing an explicit trading command.
+
+Behavior:
+
+- CASH while already cash: no trade
+- LONG while already long: no trade
+- LONG while cash: buy
+- CASH while long: sell
+
+This modification is a baseline-engineering improvement and is not considered a thesis contribution.
+
+### Backward Compatibility
+
+The original three-action mode remains available as:
+
+`orders`
+
+and remains the default configuration.
+
+The new mode is:
+
+`target_position`
+
+This preserves reproducibility of all previous PPO-v1 and rule-based baseline results.
+
+### Implementation
+
+The action mode was propagated through:
+
+- the trading environment,
+- PPO configuration,
+- PPO environment factory,
+- evaluation/backtest infrastructure,
+- walk-forward PPO evaluation.
+
+The action-space size is selected dynamically:
+
+- orders: Discrete(3)
+- target_position: Discrete(2)
+
+### Causal Execution
+
+The existing causal execution protocol remains unchanged.
+
+Information is observed through Close(t), while the requested target position is executed at Open(t+1).
+
+The target-position agent therefore cannot capture the overnight movement between Close(t) and Open(t+1).
+
+### Automated Validation
+
+Additional regression tests were added to verify:
+
+- the target-position action space contains exactly two actions,
+- CASH while already cash does not create a trade,
+- LONG while already long does not create a trade,
+- LONG while cash buys,
+- CASH while long sells,
+- transaction-cost accounting remains correct,
+- causal Close(t) to Open(t+1) execution remains intact,
+- invalid action modes are rejected,
+- the evaluation/backtest infrastructure propagates target-position mode correctly.
+
+The complete automated test suite now contains:
+
+27 passing tests.
+
+### Next Step
+
+The new PPO-v2 action representation will not be evaluated or tuned using the outer 2018-2024 walk-forward folds yet.
+
+A separate pre-2018 calibration protocol will first be created:
+
+- Inner training: 2015-01-01 to 2016-12-31
+- Inner validation: 2017-01-01 to 2017-12-31
+
+The first calibration experiment will investigate only PPO training-budget sensitivity:
+
+- 100,000 timesteps
+- 300,000 timesteps
+- 1,000,000 timesteps
+
+Each budget will initially be evaluated using three development seeds.
+
+The goal is to determine whether the original 100,000-timestep PPO baseline was materially undertrained before changing additional PPO hyperparameters.

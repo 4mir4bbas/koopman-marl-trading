@@ -33,6 +33,8 @@ class PPOConfig:
     initial_balance: float = 10_000.0
     transaction_cost: float = 0.001
 
+    action_mode: str = "orders"
+
     eval_frequency: int = 10_000
     verbose: int = 1
 
@@ -51,6 +53,15 @@ class PPOConfig:
         if self.learning_rate <= 0.0:
             raise ValueError(
                 "learning_rate must be positive."
+            )
+
+        if self.action_mode not in {
+            "orders",
+            "target_position",
+        }:
+            raise ValueError(
+                "action_mode must be either "
+                "'orders' or 'target_position'."
             )
 
         if self.n_steps <= 1:

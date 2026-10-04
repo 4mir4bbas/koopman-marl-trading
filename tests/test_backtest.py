@@ -97,3 +97,18 @@ def test_buy_and_hold_gains_on_increasing_market():
 
     assert result.metrics.total_return > 0.0
     assert result.metrics.trade_count == 1
+
+
+def test_evaluation_environment_supports_target_position():
+    data = create_market()
+
+    env = create_evaluation_environment(
+        data,
+        window_size=30,
+        start_index=29,
+        episode_length=5,
+        action_mode="target_position",
+    )
+
+    assert env.action_mode == "target_position"
+    assert env.action_space.n == 2
