@@ -1122,3 +1122,130 @@ The first calibration experiment will investigate only PPO training-budget sensi
 Each budget will initially be evaluated using three development seeds.
 
 The goal is to determine whether the original 100,000-timestep PPO baseline was materially undertrained before changing additional PPO hyperparameters.
+
+
+# Date: 2026-10-4
+
+## Financial Market Suitability Study
+
+### Objective
+
+Evaluate whether BTC/USD is an appropriate primary financial environment for studying reinforcement-learning adaptation under non-stationary market dynamics.
+
+The concern was that the strong long-term upward bias of Bitcoin could make both calibration and evaluation disproportionately reward persistent long exposure rather than genuine adaptive behavior.
+
+The market study therefore compared:
+
+- BTC/USD
+- EUR/USD
+- Gold
+- S&P 500
+
+No RL model was used for market selection.
+
+Financial baselines were evaluated before any subsequent RL experiment.
+
+### Baseline Findings
+
+Annual baseline evaluation from 2016 through 2024 showed strong directional differences across markets.
+
+BTC/USD, Gold, and S&P 500 produced positive Buy-and-Hold returns in 7 of 9 annual periods.
+
+EUR/USD produced positive Buy-and-Hold returns in only 3 of 9 annual periods and negative returns in 6 of 9 periods.
+
+Mean annual Buy-and-Hold return was approximately:
+
+- BTC/USD: 217.4%
+- EUR/USD: 0.25%
+- Gold: 10.9%
+- S&P 500: 13.6%
+
+This indicated substantially lower persistent long-direction bias in EUR/USD.
+
+### Regime-Diversity Analysis
+
+A separate price-only analysis was performed over 19 complete six-month windows between 2015-H1 and 2024-H1.
+
+The analysis measured:
+
+- positive and negative window frequencies,
+- directional sign balance,
+- persistent directional bias,
+- sign-switch frequency,
+- realized volatility,
+- volatility-normalized trend strength.
+
+EUR/USD produced:
+
+- positive-window rate: 42.1%
+- negative-window rate: 57.9%
+- sign balance: 0.842
+- directional bias: 0.170
+- sign-switch count: 8
+- sign-switch rate: 0.444
+
+Among the markets studied, EUR/USD had the highest directional balance and by far the lowest persistent directional bias.
+
+BTC/USD, Gold, and S&P 500 retained substantially stronger positive directional biases.
+
+### Market Selection
+
+EUR/USD is selected as the primary financial development market for the next stage of the research.
+
+The provisional multi-market hierarchy is:
+
+- Primary development market: EUR/USD
+- Secondary cross-market validation market: Gold
+- Extreme-volatility stress-test market: BTC/USD
+- Optional external-validation market: S&P 500
+
+The purpose of this selection is not to make it easier for RL to outperform Buy and Hold.
+
+The purpose is to use a financial environment with greater directional and regime diversity for studying adaptation under changing dynamics.
+
+### Descriptive Regime Definition
+
+For future descriptive analysis, six-month market windows will use the volatility-normalized trend score:
+
+trend_score =
+log(P_end / P_start) /
+(daily_volatility × sqrt(N))
+
+The following fixed descriptive thresholds will be used:
+
+- bearish: trend_score < -0.5
+- sideways: -0.5 <= trend_score <= 0.5
+- bullish: trend_score > 0.5
+
+These labels are intended for analysis only and are not provided to the RL agent as privileged regime information.
+
+### Data-Quality Limitation
+
+Yahoo Finance EUR/USD data contained a small number of internally inconsistent daily high/low observations.
+
+For the market-suitability study, OHLC bounds were explicitly repaired and recorded.
+
+However, the regime-selection analysis relied on closing prices and therefore did not depend on repaired high/low values.
+
+The repaired Yahoo dataset will not automatically be treated as the final research dataset for FX experiments.
+
+A more suitable FX data source will be selected before the main RL experiments.
+
+### Feature-Space Limitation
+
+Spot foreign exchange does not have centralized trading volume comparable to exchange-traded Bitcoin or equities.
+
+Therefore the existing OHLCV observation design cannot be transferred to EUR/USD without methodological justification.
+
+A common OHLC-based feature specification will be considered before cross-market RL experiments.
+
+### Next Step
+
+Before any PPO experiment on EUR/USD:
+
+1. implement a two-sided target-position trading formulation,
+2. support SHORT, FLAT, and LONG positions,
+3. preserve causal Close(t) to Open(t+1) execution,
+4. define an FX-appropriate transaction-cost model,
+5. run two-sided financial baselines first,
+6. only then construct and evaluate the PPO baseline.

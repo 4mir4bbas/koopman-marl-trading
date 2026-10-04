@@ -1,0 +1,5 @@
+market,symbol,rows,invalid_high_count,invalid_low_count,max_high_violation_bps,max_low_violation_bps,bounds_repaired,research_use
+btc_usd,BTC-USD,3597,0,0,0.0,0.0,False,validated
+eur_usd,EURUSD=X,2566,28,40,28.72004222240673,13.814860087708771,True,market_suitability_only
+gold,GC=F,2476,0,0,0.0,0.0,False,validated
+sp500,^GSPC,2478,0,0,0.0,0.0,False,validated

@@ -112,3 +112,36 @@ def test_evaluation_environment_supports_target_position():
 
     assert env.action_mode == "target_position"
     assert env.action_space.n == 2
+
+def test_run_episode_respects_periods_per_year():
+    data = create_market()
+
+    result_365 = run_episode(
+        env=create_evaluation_environment(
+            data,
+            window_size=30,
+            start_index=29,
+            episode_length=10,
+        ),
+        policy=buy_and_hold_policy,
+        periods_per_year=365,
+    )
+
+    result_252 = run_episode(
+        env=create_evaluation_environment(
+            data,
+            window_size=30,
+            start_index=29,
+            episode_length=10,
+        ),
+        policy=buy_and_hold_policy,
+        periods_per_year=252,
+    )
+
+    assert np.isclose(
+        (
+            result_365.metrics.annualized_volatility
+            / result_252.metrics.annualized_volatility
+        ),
+        np.sqrt(365 / 252),
+    )

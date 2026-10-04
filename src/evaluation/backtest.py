@@ -48,6 +48,7 @@ def run_episode(
     env: TradingEnv,
     policy: Policy,
     seed: int = 42,
+    periods_per_year: int = 365,
 ) -> EpisodeResult:
     observation, info = env.reset(seed=seed)
 
@@ -102,7 +103,7 @@ def run_episode(
         total_transaction_cost=float(
             info["total_transaction_cost"]
         ),
-        periods_per_year=365,
+        periods_per_year=periods_per_year,
     )
 
     return EpisodeResult(
